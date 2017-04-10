@@ -62,7 +62,7 @@
 
 # ## 模組
 
-# In[1]:
+# In[14]:
 
 from bs4 import BeautifulSoup
 import pandas as pd
@@ -78,11 +78,12 @@ from pandas import DataFrame
 import shutil
 
 
-# In[2]:
+# In[20]:
 
 #加速瀏覽
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.common.exceptions import TimeoutException
+from selenium.common.exceptions import NoSuchElementException 
 
 
 # # 瀏覽器
@@ -90,6 +91,18 @@ from selenium.common.exceptions import TimeoutException
 # In[3]:
 
 driver = webdriver.Chrome('Desktop/ntumath/chromedriver')
+
+
+# # 防止爬蟲中斷，檢查table出現了沒
+
+# In[40]:
+
+def table_is_present(xpath):
+    try:
+        driver.find_element_by_xpath(xpath)
+    except NoSuchElementException:
+        return False
+    return True
 
 
 # # 抓三報表
@@ -370,7 +383,78 @@ def category_to_crawl():
             pass
 
 
+# # 抓取每月平均價格
+
+# In[57]:
+
+def crawl_month_stock(number):
+    ##[start_year, start_month] = get_start(number,6)
+    [start_year, start_month] = [102,1]
+    url = 'http://www.tse.com.tw/ch/trading/exchange/STOCK_DAY_AVG/STOCK_DAY_AVGMAIN.php'
+    path = '//*[@id="main-content"]/table'
+    driver.get(url)
+    driver.find_element_by_name('CO_ID').send_keys(number)
+    #select_year = Select(driver.find_element_by_name('query_year'))
+    #select_month = Select(driver.find_element_by_name('query_month'))
+    ##假設都能抓到105年12月
+    csvfiles = open("Desktop/ntumath/computation/每月股價/"+str(number)+"股價("+str(start_year)+'.'+str(start_month)+
+                    '~105.12).csv',
+                    'wt',newline='',encoding='utf-8')
+    writer = csv.writer(csvfiles)
+    for year in range(start_year,106,1):
+        driver.find_element_by_name('query_year').send_keys(year)
+        for month in range(1,13,1):
+            if month != 11:
+                driver.find_element_by_name('query_month').send_keys(month)
+            else:
+                driver.find_element_by_name('query_month').send_keys(1)
+            driver.find_element_by_name('query-button').click()
+            while table_is_present(path) != True:
+                time.sleep(1)
+                driver.find_element_by_name('query-button').click()
+            bf = BeautifulSoup(driver.page_source,'html.parser')
+            table = bf.find_all('table',border="1")[0]
+            price_per_month = table.find_all('td')[-1].get_text()
+            if month == 1:
+                rows = [str(year)+'年1月',price_per_month]
+            else:
+                rows = [str(month)+'月',price_per_month]
+            writer.writerow(rows)
+            time.sleep(1)
+    csvfiles.close()
+
+
 # In[13]:
 
 category_to_crawl()
+
+
+# # TEST region
+
+# In[45]:
+
+driver = webdriver.Chrome('Desktop/ntumath/chromedriver')
+
+
+# In[46]:
+
+driver.get('http://www.tse.com.tw/ch/trading/exchange/STOCK_DAY_AVG/STOCK_DAY_AVGMAIN.php')
+select = Select(driver.find_element_by_name('query_month'))
+
+select.select_by_visible_text('3')
+
+
+# In[47]:
+
+select.select_by_visible_text('4')
+
+
+# In[58]:
+
+crawl_month_stock(2330)
+
+
+# In[ ]:
+
+
 
