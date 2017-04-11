@@ -46,8 +46,8 @@
 # ||3/20||-||-|-|-|-|
 # ||3/27||-||-|-|-|-|
 # ||4/03|蒐集全部資料|-|改善資料+寫程式畫圖|-|-|-|-|
-# ||4/10|找分類器|-||-|-|-|-|
-# |代導、機率期中考|4/17|Debug|-|還可以取哪些資訊|-|-|-|-|
+# ||4/10|找分類器|-|找出合併列|-|-|-|-|
+# |代導、機率期中考|4/17|Debug|-|Debug|-|-|-|-|
 # ||4/24|測試多家數據|-|看數據，想理由|-|-|-|-|
 # |密碼學期中|5/01|Debug|-|看數據想理由|-|-|-|-|
 # ||5/08|預測數據|-|如果結果不準，調整|-|-|-|-|
@@ -62,7 +62,7 @@
 
 # ## 模組
 
-# In[14]:
+# In[103]:
 
 from bs4 import BeautifulSoup
 import pandas as pd
@@ -78,7 +78,7 @@ from pandas import DataFrame
 import shutil
 
 
-# In[20]:
+# In[104]:
 
 #加速瀏覽
 from selenium.webdriver.support.ui import WebDriverWait
@@ -88,14 +88,14 @@ from selenium.common.exceptions import NoSuchElementException
 
 # # 瀏覽器
 
-# In[3]:
+# In[105]:
 
 driver = webdriver.Chrome('Desktop/ntumath/chromedriver')
 
 
 # # 防止爬蟲中斷，檢查table出現了沒
 
-# In[40]:
+# In[106]:
 
 def table_is_present(xpath):
     try:
@@ -107,7 +107,7 @@ def table_is_present(xpath):
 
 # # 抓三報表
 
-# In[4]:
+# In[107]:
 
 def scrath(number,i):
     driver.find_element_by_id('co_id').send_keys(number)
@@ -118,10 +118,11 @@ def scrath(number,i):
                 driver.find_element_by_id('season').send_keys(season+1)
                 driver.find_element_by_xpath("//input[@type='button' and @value=' 查詢 ']").click()
                 table_path = '//*[@id="table01"]/center/table[2]'
-                try:
-                    WebDriverWait(driver,3).until(lambda driver: driver.find_element_by_xpath(table_path))
-                except TimeoutException:
-                    print("網頁載入過久！")
+                #try:
+                    #WebDriverWait(driver,3).until(lambda driver: driver.find_element_by_xpath(table_path))
+                #except TimeoutException:
+                    #print("網頁載入過久！")
+                time.sleep(0.5)
                 bf = BeautifulSoup(driver.page_source,'html.parser')
                 table = bf.find_all('table',class_="hasBorder")[0]
                 rows = table.find_all('tr')
@@ -156,10 +157,10 @@ def scrath(number,i):
 
 # # 抓每月營收
 
-# In[5]:
+# In[108]:
 
 def crawl_earn_per_month(number):
-    [year_new,season_new] = get_start(number,6)
+    [year_new,season_new] = get_start(str(number),6)
     url = 'http://mops.twse.com.tw/mops/web/t05st10_ifrs'
     driver.get(url)
     Select(driver.find_element_by_id('isnew')).select_by_index(1)
@@ -180,7 +181,7 @@ def crawl_earn_per_month(number):
                 bf = BeautifulSoup(driver.page_source,'html.parser')
                 table = bf.find_all('table',class_="hasBorder")[0]
                 rows = table.find_all('tr')
-                csvfiles = open("Desktop/ntumath/computation/"+number+"/"+number+str(year)+"."+str(month)+".csv",
+                csvfiles = open("Desktop/ntumath/computation/"+str(number)+"/"+str(number)+str(year)+"."+str(month)+".csv",
                                 'wt',newline='',encoding='utf-8')
                 writer = csv.writer(csvfiles)
                 try:
@@ -206,7 +207,7 @@ def crawl_earn_per_month(number):
 
 # # 取得開始的年、季
 
-# In[6]:
+# In[109]:
 
 def get_start(number,i):
     for year in range(102,106,1):
@@ -239,7 +240,7 @@ def get_start(number,i):
 
 # # 合併
 
-# In[7]:
+# In[110]:
 
 def combine_1(number,i):
     if i <= 5:
@@ -302,7 +303,7 @@ def combine_1(number,i):
 
 # # 創資料夾+合併
 
-# In[8]:
+# In[111]:
 
 def catch_csv(company_number,i):
     company_number = str(company_number)
@@ -320,7 +321,7 @@ def catch_csv(company_number,i):
 
 # # 爬資料(三報表+每月營收)
 
-# In[9]:
+# In[112]:
 
 def crawl_number(number):
     for i in range(3,7,1):
@@ -342,7 +343,7 @@ def crawl_number(number):
 
 # # 刪除不需要的檔案
 
-# In[10]:
+# In[113]:
 
 def clear(number):
     for year in range(102,106,1):
@@ -353,43 +354,20 @@ def clear(number):
                 pass
 
 
-# In[11]:
+# # 各家公司分類及名單
+
+# In[114]:
 
 index = pd.read_csv('Desktop/ntumath/computation/index.csv',index_col=0)
 category = index.T.index
 
 
-# # 各種分類公司開抓
-
-# In[12]:
-
-def category_to_crawl():
-    index = pd.read_csv('Desktop/ntumath/computation/index.csv',index_col=0)
-    category = index.T.index
-    for i in range(1,len(category)+1,1):
-        cate = category[i]
-        path_of_folder = Path('Desktop/ntumath/computation/'+cate)
-        if path_of_folder.is_dir():
-            pass
-        else:
-            os.makedirs("Desktop/ntumath/computation/"+cate)
-        schedule = list(map(int,list(index.iloc[:,i].dropna())))
-        try:
-            for company_num in schedule:
-                crawl_number(company_num)
-                clear(company_num)
-                shutil.move('Desktop/ntumath/computation/'+str(company_num),'Desktop/ntumath/computation/'+cate+'/'+str(company_num))
-        except:
-            pass
-
-
 # # 抓取每月平均價格
 
-# In[57]:
+# In[115]:
 
 def crawl_month_stock(number):
-    ##[start_year, start_month] = get_start(number,6)
-    [start_year, start_month] = [102,1]
+    [start_year, start_month] = get_start(str(number),6)
     url = 'http://www.tse.com.tw/ch/trading/exchange/STOCK_DAY_AVG/STOCK_DAY_AVGMAIN.php'
     path = '//*[@id="main-content"]/table'
     driver.get(url)
@@ -397,7 +375,7 @@ def crawl_month_stock(number):
     #select_year = Select(driver.find_element_by_name('query_year'))
     #select_month = Select(driver.find_element_by_name('query_month'))
     ##假設都能抓到105年12月
-    csvfiles = open("Desktop/ntumath/computation/每月股價/"+str(number)+"股價("+str(start_year)+'.'+str(start_month)+
+    csvfiles = open('Desktop/ntumath/computation/'+str(number)+'/'+str(number)+"股價("+str(start_year)+'.'+str(start_month)+
                     '~105.12).csv',
                     'wt',newline='',encoding='utf-8')
     writer = csv.writer(csvfiles)
@@ -424,34 +402,47 @@ def crawl_month_stock(number):
     csvfiles.close()
 
 
-# In[13]:
+# # 各種分類公司開抓
 
-category_to_crawl()
+# In[116]:
+
+def category_to_crawl():
+    index = pd.read_csv('Desktop/ntumath/computation/index.csv',index_col=0)
+    category = index.T.index
+    for i in range(1,len(category)+1,1):
+        cate = category[i]
+        path_of_folder = Path('Desktop/ntumath/computation/'+cate)
+        if path_of_folder.is_dir():
+            pass
+        else:
+            os.makedirs("Desktop/ntumath/computation/"+cate)
+        schedule = list(map(int,list(index.iloc[:,i].dropna())))
+        try:
+            for company_num in schedule:
+                crawl_number(company_num)
+                crawl_month_stock(company_num)
+                clear(company_num)
+                shutil.move('Desktop/ntumath/computation/'+str(company_num),'Desktop/ntumath/computation/'+cate+'/'+str(company_num))
+        except:
+            pass
+
+
+# In[117]:
+
+#category_to_crawl()
+crawl_number(2330)
+crawl_month_stock(2330)
+clear(2330)
 
 
 # # TEST region
-
-# In[45]:
-
-driver = webdriver.Chrome('Desktop/ntumath/chromedriver')
-
-
-# In[46]:
-
-driver.get('http://www.tse.com.tw/ch/trading/exchange/STOCK_DAY_AVG/STOCK_DAY_AVGMAIN.php')
+driver = webdriver.Chrome('Desktop/ntumath/chromedriver')driver.get('http://www.tse.com.tw/ch/trading/exchange/STOCK_DAY_AVG/STOCK_DAY_AVGMAIN.php')
 select = Select(driver.find_element_by_name('query_month'))
 
-select.select_by_visible_text('3')
+select.select_by_visible_text('3')select.select_by_visible_text('4')crawl_month_stock(2330)
+# In[ ]:
 
 
-# In[47]:
-
-select.select_by_visible_text('4')
-
-
-# In[58]:
-
-crawl_month_stock(2330)
 
 
 # In[ ]:
