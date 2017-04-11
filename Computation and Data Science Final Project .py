@@ -2,45 +2,27 @@
 # coding: utf-8
 # 3/27
 # 主題：
-可能主題：用資訊預測每一季股票
+‘’‘可能主題：用資訊預測每一季股票
     資料：(1)財務報表
             a.資產負債表(v)
-            b.
-         (2)新聞、政策
-         (3)大盤走向
-         (4)每日交易
-         (5)大戶狀況
-         (6)匯率
-         (7)銀行利率
-         (8)除權息
-        *(9)每月營收
-    股票分析常用3種分析模式(1)基本面(2)技術面(3)籌碼面
-                (1)基本面：
-                    優點：巴菲特再用(誤)、能夠反映股價與公司實際價值、
-                    缺點：每一季才有新的財報，往往跟不上股票價值變化的速度
-                    適合的人：
-                (2)技術面：
-                    優點：
-                    缺點：
-                    適合的人：
-                (3)籌碼面：
-                    優點：
-                    缺點：
-                    適合的人：
-                       
+            b.綜合損益表(v)
+            c.現金流動表(v)
+         (2)匯率
+         (3)銀行利率
+        *(4)每月營收（v)
+
  原因： 一張股票在現在常被當成一種商品在買賣，很少人真的把作為股東這件事當成一回事，所以也就造成很多人著重在於技術面分析而忽視了基本面，
  所以我們將盡可能地蒐集所有影響或可判斷一個公司價值的資訊，並運用現在的機器學習法()去預測股票的走向，目標是
  (1)預測準度
  (2)實際的看股票的走向是否與財務報表給出的資訊有正相關
  (3)比較各項資訊的重要程度
- 
- 
+
  Topic2:抓出財務報表有問題的公司
  原因：如果公司負責人為了吸引資金而作假財務報表，常會讓投資人損失慘重。我們將依照各個產業不同，分析產業在每一季大概的趨勢，並且挑出偏離值
  作為投資人可以更深入了解的參考
- 
- 
-# 
+ ’‘’
+
+#
 # |考試|Date|我的預期|Done?|宗穎預期|Done?|Extra|Problem|Solve?|
 # |---|----|---------|-----|-----|-------|------|
 # ||3/20||-||-|-|-|-|
@@ -83,7 +65,7 @@ import shutil
 #加速瀏覽
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.common.exceptions import TimeoutException
-from selenium.common.exceptions import NoSuchElementException 
+from selenium.common.exceptions import NoSuchElementException
 
 
 # # 瀏覽器
@@ -176,7 +158,7 @@ def crawl_earn_per_month(number):
                 else:
                     driver.find_element_by_id('month').send_keys(1)
                 driver.find_element_by_xpath("//input[@type='button' and @value=' 查詢 ']").click()
-                
+
                 time.sleep(3)
                 bf = BeautifulSoup(driver.page_source,'html.parser')
                 table = bf.find_all('table',class_="hasBorder")[0]
@@ -235,7 +217,7 @@ def get_start(number,i):
                         pass
                 except:
                     pass
-            
+
 
 
 # # 合併
@@ -338,7 +320,7 @@ def crawl_number(number):
             driver.find_element_by_id('year').clear()
             driver.find_element_by_id('co_id').clear()
             catch_csv(number,i)
-        
+
 
 
 # # 刪除不需要的檔案
@@ -446,6 +428,3 @@ select.select_by_visible_text('3')select.select_by_visible_text('4')crawl_month_
 
 
 # In[ ]:
-
-
-
