@@ -281,7 +281,34 @@ def combine_1(number,i):
     elif i == 6:
         data.to_csv("Desktop/ntumath/computation/"+number+"/"+number+"("+str(year_new)+"."+str(month_new)+"~"+str(year_final)+
                         "."+str(month_final)+")"+'EPM'+".csv")
+#清理重複列
+def combine(number,i):
+    [start_year,start] = get_start(str(number),i)
+    try:
+        data = pd.read_csv('Desktop/ntumath/computation/'+str(number)+'/'+str(number)+
+                            '('+str(start_year)+'.'+str(start)+'~105.4)'+str(i)+'.csv',index_col=0)
+        if i == 4:
+            try:
+                data.loc['確定福利計畫之再衡量數'].fillna(data.loc['確定福利計畫精算利益（損失）'])
+                data.drop('確定福利計畫精算利益（損失）')
+            except:
+                pass
+        elif i == 5:
 
+
+
+
+
+        elif i == 3:
+
+
+
+
+
+
+
+    except:
+        return '讀取csv失敗'
 
 # # 創資料夾+合併
 
