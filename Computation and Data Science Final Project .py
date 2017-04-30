@@ -2,7 +2,7 @@
 # coding: utf-8
 # 3/27
 # 主題：
-‘’‘可能主題：用資訊預測每一季股票
+'''可能主題：用資訊預測每一季股票
     資料：(1)財務報表
             a.資產負債表(v)
             b.綜合損益表(v)
@@ -20,8 +20,10 @@
  Topic2:抓出財務報表有問題的公司
  原因：如果公司負責人為了吸引資金而作假財務報表，常會讓投資人損失慘重。我們將依照各個產業不同，分析產業在每一季大概的趨勢，並且挑出偏離值
  作為投資人可以更深入了解的參考
- ’‘’
 
+假設：
+    (1)非寡占(前3家超過70%)的產業具有相似財務特性
+'''
 #
 # |考試|Date|我的預期|Done?|宗穎預期|Done?|Extra|Problem|Solve?|
 # |---|----|---------|-----|-----|-------|------|
@@ -74,6 +76,13 @@ from selenium.common.exceptions import NoSuchElementException
 
 driver = webdriver.Chrome('Desktop/ntumath/chromedriver')
 
+# # 各家公司分類及名單
+
+# In[114]:
+
+index = pd.read_csv('Desktop/ntumath/computation/index.csv',index_col=0)
+category = index.T.index
+
 
 # # 防止爬蟲中斷，檢查table出現了沒
 
@@ -92,6 +101,10 @@ def table_is_present(xpath):
 # In[107]:
 
 def scrath(number,i):
+    '''
+    為抓三大報表的主要區，把每一季的資料存成csv檔，並沒有額外處理
+    number -- 字串
+    '''
     driver.find_element_by_id('co_id').send_keys(number)
     for year in range(102,106,1):
         driver.find_element_by_id('year').send_keys(year)
@@ -142,6 +155,10 @@ def scrath(number,i):
 # In[108]:
 
 def crawl_earn_per_month(number):
+    '''
+    抓取每月平均股價，資料較乾淨
+    number -- 數字
+    '''
     [year_new,season_new] = get_start(str(number),6)
     url = 'http://mops.twse.com.tw/mops/web/t05st10_ifrs'
     driver.get(url)
@@ -192,6 +209,10 @@ def crawl_earn_per_month(number):
 # In[109]:
 
 def get_start(number,i):
+    '''
+    不一定每家公司都有從102年開始的資料，此區為取得這家公司最早開始的報表或EPM
+    number -- 字串
+    '''
     for year in range(102,106,1):
         if i <= 5:
             for season in range(1,5,1):
@@ -225,6 +246,10 @@ def get_start(number,i):
 # In[110]:
 
 def combine_1(number,i):
+    '''
+    爬完的資料由此合併，合併的為三大報表和每月盈餘。最後把NAN設為0，全部為0的行刪除
+    number -- 字串
+    '''
     if i <= 5:
         [year_final,season_final] = get_start(number,i)
         [year_new,season_new] = get_start(number,i)
@@ -283,30 +308,45 @@ def combine_1(number,i):
                         "."+str(month_final)+")"+'EPM'+".csv")
 #清理重複列
 def combine(number,i):
+    '''
+    抓完資料後，合併應該為同一列的資料，只處理三大報表
+    參數：(公司代號,報表對應號碼)
+    程序：先抓檔案，在合併
+    number -- 數字
+    '''
     [start_year,start] = get_start(str(number),i)
     try:
         data = pd.read_csv('Desktop/ntumath/computation/'+str(number)+'/'+str(number)+
-                            '('+str(start_year)+'.'+str(start)+'~105.4)'+str(i)+'.csv',index_col=0)
+                            '(102.1~105.4)'+str(i)+'.csv',index_col=0)
         if i == 4:
-            try:
-                data.loc['確定福利計畫之再衡量數'].fillna(data.loc['確定福利計畫精算利益（損失）'])
-                data.drop('確定福利計畫精算利益（損失）')
-            except:
-                pass
-        elif i == 5:
-
-
-
-
-
+            target = ['確定福利計畫之再衡量數','採用權益法認列之關聯企業及合資之其他綜合損益之份額合計','重估增值']
+            domain = ['確定福利計畫精算利益（損失）','採用權益法認列之關聯企業及合資之其他綜合損益之份額-不重分類至損益之項目','重估價之利益（損失）']
+            for i in len(target):
+                try:
+                    data.loc[target[i]] = data.loc[target[i]].fillna(data.loc[domain[i]])
+                    data.drop(domain[i])
+                except:
+                    pass
         elif i == 3:
-
-
-
-
-
-
-
+            target = ['權益總計','負債總計','資產總計']
+            domain = ['權益總額','負債總額','資產總額']
+            for i in len(target):
+                try:
+                    data.loc[target[i]] = data.loc[target[i]].fillna(data.loc[domain[i]])
+                    data.drop(domain[i])
+                except:
+                    pass
+        elif i == 5:
+            target = ['其他金融資產增加','短期借款增加','長期應收租賃款增加']
+            domain = ['其他金融資產減少','短期借款減少','長期應收租賃款減少']
+            for i in len(target):
+                try:
+                    data.loc[target[i]] = data.loc[target[i]].fillna(data.loc[domain[i]])
+                    data.drop(domain[i])
+                except:
+                    pass
+        data.to_csv('Desktop/ntumath/computation/'+str(number)+'/'+str(number)+
+                            '(102.1~105.4)'+str(i)+'x.csv')
     except:
         return '讀取csv失敗'
 
@@ -314,8 +354,14 @@ def combine(number,i):
 
 # In[111]:
 
-def catch_csv(company_number,i):
-    company_number = str(company_number)
+def catch_csv(company_num,i):
+    '''
+    參數：(公司代號,抓取類別)
+    建立公司的資料夾，並開始抓取
+    company_number -- 字串
+    company_num -- 數字
+    '''
+    company_number = str(company_num)
     Path_folder =  Path("Desktop/ntumath/computation/"+company_number)
     if Path_folder.is_dir():
         pass
@@ -324,9 +370,10 @@ def catch_csv(company_number,i):
     if i <= 5:
         scrath(company_number,i)
     elif i == 6:
-        crawl_earn_per_month(company_number)
+        crawl_earn_per_month(company_num)
     combine_1(company_number,i)
-
+    if i <= 5:
+        combine(company_num,i)
 
 # # 爬資料(三報表+每月營收)
 
@@ -361,14 +408,6 @@ def clear(number):
                 os.remove('Desktop/ntumath/computation/'+str(number)+'/'+str(number)+str(year)+'.'+str(month)+'.csv')
             except:
                 pass
-
-
-# # 各家公司分類及名單
-
-# In[114]:
-
-index = pd.read_csv('Desktop/ntumath/computation/index.csv',index_col=0)
-category = index.T.index
 
 
 # # 抓取每月平均價格
@@ -415,43 +454,30 @@ def crawl_month_stock(number):
 
 # In[116]:
 
-def category_to_crawl():
-    index = pd.read_csv('Desktop/ntumath/computation/index.csv',index_col=0)
-    category = index.T.index
-    for i in range(1,len(category)+1,1):
-        cate = category[i]
-        path_of_folder = Path('Desktop/ntumath/computation/'+cate)
-        if path_of_folder.is_dir():
-            pass
-        else:
-            os.makedirs("Desktop/ntumath/computation/"+cate)
-        schedule = list(map(int,list(index.iloc[:,i].dropna())))
-        try:
-            for company_num in schedule:
-                crawl_number(company_num)
-                crawl_month_stock(company_num)
-                clear(company_num)
-                shutil.move('Desktop/ntumath/computation/'+str(company_num),'Desktop/ntumath/computation/'+cate+'/'+str(company_num))
-        except:
-            pass
-
+def category_to_crawl(i):
+    '''
+    參數：i  --- 要爬的產業
+    '''
+    cate = category[i]
+    path_of_folder = Path('Desktop/ntumath/computation/'+cate)
+    if path_of_folder.is_dir():
+        pass
+    else:
+        os.makedirs("Desktop/ntumath/computation/"+cate)
+    schedule = list(map(int,list(index.iloc[:,i].dropna())))
+    try:
+        for company_num in schedule:
+            crawl_number(company_num)
+        for company_num in schedule:
+            crawl_month_stock(company_num)
+            clear(company_num)
+            shutil.move('Desktop/ntumath/computation/'+str(company_num),'Desktop/ntumath/computation/'+cate+'/'+str(company_num))
+    except:
+        pass
 
 # In[117]:
 
 #category_to_crawl()
-crawl_number(2330)
-crawl_month_stock(2330)
-clear(2330)
-
-
-# # TEST region
-driver = webdriver.Chrome('Desktop/ntumath/chromedriver')driver.get('http://www.tse.com.tw/ch/trading/exchange/STOCK_DAY_AVG/STOCK_DAY_AVGMAIN.php')
-select = Select(driver.find_element_by_name('query_month'))
-
-select.select_by_visible_text('3')select.select_by_visible_text('4')crawl_month_stock(2330)
-# In[ ]:
-
-
-
-
-# In[ ]:
+#crawl_number(2330)
+#crawl_month_stock(2330)
+#clear(2330)
