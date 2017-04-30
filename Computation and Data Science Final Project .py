@@ -314,39 +314,39 @@ def combine(number,i):
     程序：先抓檔案，在合併
     number -- 數字
     '''
-    [start_year,start] = get_start(str(number),i)
+    #[start_year,start] = get_start(str(number),i)
     try:
         data = pd.read_csv('Desktop/ntumath/computation/'+str(number)+'/'+str(number)+
                             '(102.1~105.4)'+str(i)+'.csv',index_col=0)
         if i == 4:
             target = ['確定福利計畫之再衡量數','採用權益法認列之關聯企業及合資之其他綜合損益之份額合計','重估增值']
             domain = ['確定福利計畫精算利益（損失）','採用權益法認列之關聯企業及合資之其他綜合損益之份額-不重分類至損益之項目','重估價之利益（損失）']
-            for i in len(target):
+            for j in range(len(target)):
                 try:
-                    data.loc[target[i]] = data.loc[target[i]].fillna(data.loc[domain[i]])
-                    data.drop(domain[i])
+                    data.loc[target[j]] = data.loc[target[j]].fillna(data.loc[domain[j]])
+                    data.drop(domain[j],inplace=True)
                 except:
                     pass
         elif i == 3:
             target = ['權益總計','負債總計','資產總計']
             domain = ['權益總額','負債總額','資產總額']
-            for i in len(target):
+            for j in range(len(target)):
                 try:
-                    data.loc[target[i]] = data.loc[target[i]].fillna(data.loc[domain[i]])
-                    data.drop(domain[i])
+                    data.loc[target[j]] = data.loc[target[j]].fillna(data.loc[domain[j]])
+                    data.drop(domain[j],inplace=True)
                 except:
                     pass
         elif i == 5:
             target = ['其他金融資產增加','短期借款增加','長期應收租賃款增加']
             domain = ['其他金融資產減少','短期借款減少','長期應收租賃款減少']
-            for i in len(target):
+            for j in range(len(target)):
                 try:
-                    data.loc[target[i]] = data.loc[target[i]].fillna(data.loc[domain[i]])
-                    data.drop(domain[i])
+                    data.loc[target[j]] = data.loc[target[j]].fillna(data.loc[domain[j]])
+                    data.drop(domain[j],inplace=True)
                 except:
                     pass
         data.to_csv('Desktop/ntumath/computation/'+str(number)+'/'+str(number)+
-                            '(102.1~105.4)'+str(i)+'x.csv')
+                            '(102.1~105.4)'+str(i)+'.csv')
     except:
         return '讀取csv失敗'
 
@@ -372,8 +372,6 @@ def catch_csv(company_num,i):
     elif i == 6:
         crawl_earn_per_month(company_num)
     combine_1(company_number,i)
-    if i <= 5:
-        combine(company_num,i)
 
 # # 爬資料(三報表+每月營收)
 
@@ -476,7 +474,14 @@ def category_to_crawl(i):
         pass
 
 # In[117]:
-
+# 清理重複的raw
+def clean_data_row(company_num,i):
+    '''
+    參數:公司代號 -- 數字, 報表種類
+    針對三大報表做資料的清理
+    '''
+    for i in range(3,6,1):
+        combine(company_num,i)
 #category_to_crawl()
 #crawl_number(2330)
 #crawl_month_stock(2330)
