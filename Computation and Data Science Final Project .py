@@ -482,7 +482,26 @@ def clean_data_row(company_num,i):
     '''
     for i in range(3,6,1):
         combine(company_num,i)
+
+# csv 轉成 excel
+#還有刪除csv檔
+def excel_to_csv(i):
+    '''
+    參數：產業類型
+    '''
+    cate = category[i]
+    schedule = list(map(int,list(index.iloc[:,i].dropna())))
+    for company in schedule:
+        files = os.listdir('Desktop/ntumath/computation/'+cate+'/'+str(company)+'/')
+        for csv_files in files:
+            try:
+                data = pd.read_csv('Desktop/ntumath/computation/'+cate+'/'+str(company)+'/'+csv_files,index_col=0)
+                data.to_excel('Desktop/ntumath/computation/'+cate+'/'+str(company)+'/'+csv_files[:-3]+'xlsx')
+                os.remove('Desktop/ntumath/computation/'+cate+'/'+str(company)+'/'+csv_files)
+            except:
+                pass
 #category_to_crawl()
 #crawl_number(2330)
 #crawl_month_stock(2330)
 #clear(2330)
+excel_to_csv(0)
