@@ -95,6 +95,14 @@ def table_is_present(xpath):
         return False
     return True
 
+#字串轉數字
+def string_to_number(convert_list):
+    for index, item in enumerate(convert_list):
+        try:
+            convert_list[index]=float(item.replace(',',''))
+        except ValueError:
+            pass
+    return convert_list
 
 # # 抓三報表
 
@@ -132,6 +140,7 @@ def scrath(number,i):
                         else:
                             for cell in rows[row].find_all(['td','th']):
                                 csvRow.append(cell.get_text().strip())
+                        csvRow = string_to_number(csvRow)
                         if row == 3 :
                             if i != 5:
                                 csvRow = csvRow[1:3]
@@ -188,6 +197,7 @@ def crawl_earn_per_month(number):
                         csvRow = []
                         for cell in rows[row].find_all(['td','th']):
                             csvRow.append(cell.get_text().strip())
+                        csvRow = string_to_number(csvRow)
                         if row == 0:
                             writer.writerow([])
                             csvRow = csvRow[1:2]
@@ -438,7 +448,7 @@ def crawl_month_stock(number):
                 driver.find_element_by_name('query-button').click()
             bf = BeautifulSoup(driver.page_source,'html.parser')
             table = bf.find_all('table',border="1")[0]
-            price_per_month = table.find_all('td')[-1].get_text()
+            price_per_month = float(table.find_all('td')[-1].get_text())
             if month == 1:
                 rows = [str(year)+'年1月',price_per_month]
             else:
