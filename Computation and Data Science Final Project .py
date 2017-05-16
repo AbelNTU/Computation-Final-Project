@@ -167,6 +167,13 @@ def crawl_earn_per_month(number):
                             pass
                         else:
                             writer.writerow(csvRow)
+                        '''
+                        elif row in [2,6]:
+                            csvRow = csvRow[:2]
+                            writer.writerow(csvRow)
+                        else:
+                            pass
+                        '''
                 finally:
                     csvfiles.close()
             except:
@@ -288,7 +295,7 @@ def combine(number,i):
     #[start_year,start] = get_start(str(number),i)
     try:
         data = pd.read_csv('Desktop/ntumath/computation/'+str(number)+'/'+str(number)+
-                            '(102.1~105.4)'+str(i)+'.csv',index_col=0)
+                            os.listdir('Desktop/ntumath/computation/'+cate+'/'+str(company)+'/')[i - 1],index_col=0)
         if i == 4:
             target = ['確定福利計畫之再衡量數','採用權益法認列之關聯企業及合資之其他綜合損益之份額合計','重估增值']
             domain = ['確定福利計畫精算利益（損失）','採用權益法認列之關聯企業及合資之其他綜合損益之份額-不重分類至損益之項目','重估價之利益（損失）']
@@ -343,6 +350,8 @@ def catch_csv(company_num,i):
     elif i == 6:
         crawl_earn_per_month(company_num)
     combine_1(company_number,i)
+    if i <= 5:
+        combine(company_num,i)
 
 # # 爬資料(三報表+每月營收)
 
@@ -379,43 +388,107 @@ def clear(number):
                 pass
 
 
+def get_stock_start(number):
+    '''
+    抓股價從何時開始
+    參數：公司代號--數字
+    '''
+    url = 'http://www.tse.com.tw/ch/trading/exchange/STOCK_DAY_AVG/STOCK_DAY_AVGMAIN.php'
+    path = '//*[@id="main-content"]/table'
+    driver.get(url)
+    driver.find_element_by_name('CO_ID').send_keys(number)
+    driver.find_element_by_name('query_month').send_keys(12)
+    for test_year in range(102,106,1):
+        driver.find_element_by_name('query_year').send_keys(test_year)
+        for test_month in range(1,13,1):
+            if test_month != 11:
+                driver.find_element_by_name('query_month').send_keys(test_month)
+            else:
+                driver.find_element_by_name('query_month').send_keys(1)
+            driver.find_element_by_name('query-button').click()
+            time.sleep(1)
+            while table_is_present(path) != True:
+                time.sleep(3)
+                driver.find_element_by_name('query-button').click()
+            bf = BeautifulSoup(driver.page_source,'html.parser')
+            table = bf.find_all('table',border="1")[0]
+            try:
+                price_per_month = float(table.find_all('td')[-1].get_text())
+                start_year = test_year
+                start_month = test_month
+                return [start_year,start_month]
+            except ValueError:
+                pass
 # # 抓取每月平均價格
 
 # In[115]:
 
 def crawl_month_stock(number):
-    [start_year, start_month] = get_start(str(number),6)
-    url = 'http://www.tse.com.tw/ch/trading/exchange/STOCK_DAY_AVG/STOCK_DAY_AVGMAIN.php'
+    '''
+    從股價有紀錄開始爬
+    參數：公司代號--數字
+    '''
+    [start_year,start_month] = get_stock_start(number)
     path = '//*[@id="main-content"]/table'
-    driver.get(url)
-    driver.find_element_by_name('CO_ID').send_keys(number)
-    #select_year = Select(driver.find_element_by_name('query_year'))
-    #select_month = Select(driver.find_element_by_name('query_month'))
-    ##假設都能抓到105年12月
     csvfiles = open('Desktop/ntumath/computation/'+str(number)+'/'+str(number)+"股價("+str(start_year)+'.'+str(start_month)+
                     '~105.12).csv',
                     'wt',newline='',encoding='utf-8')
     writer = csv.writer(csvfiles)
-    for year in range(start_year,106,1):
-        driver.find_element_by_name('query_year').send_keys(year)
-        for month in range(1,13,1):
-            if month != 11:
-                driver.find_element_by_name('query_month').send_keys(month)
-            else:
-                driver.find_element_by_name('query_month').send_keys(1)
+    bf = BeautifulSoup(driver.page_source,'html.parser')
+    table = bf.find_all('table',border="1")[0]
+    price_per_month = float(table.find_all('td')[-1].get_text())
+    rows = [str(start_year)+'年'+str(start_month)+'月',price_per_month]
+    writer.writerow(rows)
+    time.sleep(1)
+    for month_f in range(start_month+1,13,1):
+        if month_f == 11:
+            driver.find_element_by_name('query_month').send_keys(1)
+        elif month_f == 1:
+            driver.find_element_by_name('query_month').send_keys(0)
+        else:
+            driver.find_element_by_name('query_month').send_keys(month_f)
+        driver.find_element_by_name('query-button').click()
+        while table_is_present(path) != True:
+            time.sleep(3)
             driver.find_element_by_name('query-button').click()
-            while table_is_present(path) != True:
-                time.sleep(1)
-                driver.find_element_by_name('query-button').click()
-            bf = BeautifulSoup(driver.page_source,'html.parser')
-            table = bf.find_all('table',border="1")[0]
+        bf = BeautifulSoup(driver.page_source,'html.parser')
+        table = bf.find_all('table',border="1")[0]
+        try:
             price_per_month = float(table.find_all('td')[-1].get_text())
-            if month == 1:
-                rows = [str(year)+'年1月',price_per_month]
+            if month_f == 1:
+                rows = [str(start_year)+'年1月',price_per_month]
             else:
-                rows = [str(month)+'月',price_per_month]
+                rows = [str(month_f)+'月',price_per_month]
             writer.writerow(rows)
             time.sleep(1)
+        except:
+            pass
+    try:
+        for year in range(start_year+1,106,1):
+            driver.find_element_by_name('query_year').send_keys(year)
+            for month in range(1,13,1):
+                if month != 11:
+                    driver.find_element_by_name('query_month').send_keys(month)
+                else:
+                    driver.find_element_by_name('query_month').send_keys(1)
+                driver.find_element_by_name('query-button').click()
+                while table_is_present(path) != True:
+                    time.sleep(3)
+                    driver.find_element_by_name('query-button').click()
+                bf = BeautifulSoup(driver.page_source,'html.parser')
+                table = bf.find_all('table',border="1")[0]
+                try:
+                    price_per_month = float(table.find_all('td')[-1].get_text())
+                    if month == 1:
+                        rows = [str(year)+'年1月',price_per_month]
+                    else:
+                        rows = [str(month)+'月',price_per_month]
+                    writer.writerow(rows)
+                    time.sleep(1)
+                except:
+                    pass
+    except:
+        pass
     csvfiles.close()
 
 
@@ -444,6 +517,20 @@ def category_to_crawl(i):
     except:
         pass
 
+def crawl_stcok_and_clean(i):
+    '''
+    爬每月平均股價跟清理
+    參數：產業代號--數字
+    '''
+    cate = category[i]
+    schedule = list(map(int,list(index.iloc[:,i].dropna())))
+    try:
+        for company_num in schedule[3:]:
+            crawl_month_stock(company_num)
+            clear(company_num)
+            shutil.move('Desktop/ntumath/computation/'+str(company_num),'Desktop/ntumath/computation/'+cate+'/'+str(company_num))
+    except:
+        pass
 # In[117]:
 # 清理重複的raw
 def clean_data_row(company_num,i):
@@ -476,3 +563,10 @@ def excel_to_csv(i):
 #crawl_month_stock(2330)
 #clear(2330)
 excel_to_csv(0)
+##整段流程
+#1對某個產業(i)爬三大報表和EPM
+category_to_crawl(i)
+#2對某個產業爬每月股價然後刪除不必要檔案、整理在產業資料夾
+crawl_stcok_and_clean(i)
+#3資料清理
+data_munging(i,data_num)

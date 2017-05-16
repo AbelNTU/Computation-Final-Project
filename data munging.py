@@ -29,6 +29,7 @@ def data_munging(category_num,data_num):
         return 'something is wrong'
     number_of_company = len(schedule)
     for i,company in enumerate(schedule):
+        combine(cate,company,data_num)
         data = pd.read_csv('Desktop/ntumath/computation/'+cate+'/'+str(company)+'/'+
                             os.listdir('Desktop/ntumath/computation/'+cate+'/'+str(company)+'/')[data_num - 1],index_col=0)
         for row in list(data.index):
