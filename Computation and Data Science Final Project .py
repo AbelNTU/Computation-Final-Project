@@ -21,6 +21,7 @@ from pathlib import Path
 import os
 from pandas import DataFrame
 import shutil
+from collections import Counter
 
 
 # In[104]:
@@ -125,18 +126,14 @@ def scrath(number,i):
 # In[108]:
 
 def crawl_earn_per_month(number):
-    '''
-    抓取每月平均股價，資料較乾淨
-    number -- 數字
-    '''
-    [year_new,season_new] = get_start(str(number),6)
+    #[year_new,season_new] = get_start(str(number),6)
     url = 'http://mops.twse.com.tw/mops/web/t05st10_ifrs'
     driver.get(url)
     Select(driver.find_element_by_id('isnew')).select_by_index(1)
     driver.find_element_by_id('co_id').clear()
     driver.find_element_by_id('co_id').send_keys(number)
     driver.find_element_by_id('year').clear()
-    for year in range(year_new,106,1):
+    for year in range(102,106,1):
         driver.find_element_by_id('year').send_keys(year)
         for month in range(1,13,1):
             try:
@@ -154,29 +151,24 @@ def crawl_earn_per_month(number):
                                 'wt',newline='',encoding='utf-8')
                 writer = csv.writer(csvfiles)
                 try:
-                    for row in range(len(rows)):
+                    for row in range(len((rows))):
                         csvRow = []
                         for cell in rows[row].find_all(['td','th']):
                             csvRow.append(cell.get_text().strip())
                         csvRow = string_to_number(csvRow)
-                        if row == 0:
-                            writer.writerow([])
-                            csvRow = csvRow[1:2]
-                            writer.writerow(csvRow)
-                        elif row not in [1,5]:
-                            pass
-                        else:
-                            writer.writerow(csvRow)
-                        '''
-                        elif row in [2,6]:
-                            csvRow = csvRow[:2]
+                        if row == 0 or csvRow[0] == '本月' or csvRow[0] == '本年累計':
+                            if row == 0:
+                                writer.writerow([])
+                                csvRow = csvRow[1:2]
+                            else:
+                                csvRow = csvRow[:2]
                             writer.writerow(csvRow)
                         else:
                             pass
-                        '''
                 finally:
                     csvfiles.close()
             except:
+                print('EPM error '+str(number)+':'+str(year)+' '+str(month))
                 pass
             time.sleep(0.2)
         driver.find_element_by_id('year').clear()
@@ -499,6 +491,7 @@ def crawl_month_stock(number):
 def category_to_crawl(i):
     '''
     參數：i  --- 要爬的產業
+    這裏只爬三大報表和每月營收
     '''
     cate = category[i]
     path_of_folder = Path('Desktop/ntumath/computation/'+cate)
@@ -510,10 +503,7 @@ def category_to_crawl(i):
     try:
         for company_num in schedule:
             crawl_number(company_num)
-        for company_num in schedule:
-            crawl_month_stock(company_num)
-            clear(company_num)
-            shutil.move('Desktop/ntumath/computation/'+str(company_num),'Desktop/ntumath/computation/'+cate+'/'+str(company_num))
+            time.sleep(2)
     except:
         pass
 
