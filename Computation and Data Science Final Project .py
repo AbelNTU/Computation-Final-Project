@@ -22,7 +22,7 @@ import os
 from pandas import DataFrame
 import shutil
 from collections import Counter
-
+import requests
 
 # In[104]:
 
@@ -385,32 +385,24 @@ def get_stock_start(number):
     抓股價從何時開始
     參數：公司代號--數字
     '''
-    url = 'http://www.tse.com.tw/ch/trading/exchange/STOCK_DAY_AVG/STOCK_DAY_AVGMAIN.php'
-    path = '//*[@id="main-content"]/table'
-    driver.get(url)
-    driver.find_element_by_name('CO_ID').send_keys(number)
-    driver.find_element_by_name('query_month').send_keys(12)
+    url = 'http://www.tse.com.tw/exchangeReport/STOCK_DAY_AVG'
+    params = {"data":"20130101",
+                "stockNo":str(number)
+                }
     for test_year in range(102,106,1):
-        driver.find_element_by_name('query_year').send_keys(test_year)
         for test_month in range(1,13,1):
-            if test_month != 11:
-                driver.find_element_by_name('query_month').send_keys(test_month)
+            if test_month >= 10:
+                month = str(test_year+1911)+str(test_month)+"01"
             else:
-                driver.find_element_by_name('query_month').send_keys(1)
-            driver.find_element_by_name('query-button').click()
-            time.sleep(1)
-            while table_is_present(path) != True:
-                time.sleep(3)
-                driver.find_element_by_name('query-button').click()
-            bf = BeautifulSoup(driver.page_source,'html.parser')
-            table = bf.find_all('table',border="1")[0]
+                month = str(test_year+1911)+"0"+str(test_month)+"01"
+            params["date"] = month
+            text = eval(requests.get(url,params=params).text)
             try:
-                price_per_month = float(table.find_all('td')[-1].get_text())
-                start_year = test_year
-                start_month = test_month
-                return [start_year,start_month]
-            except ValueError:
+                text["data"]
+                return [test_year,test_month]
+            except KeyError:
                 pass
+            time.sleep(.5)
 # # 抓取每月平均價格
 
 # In[115]:
@@ -421,68 +413,55 @@ def crawl_month_stock(number):
     參數：公司代號--數字
     '''
     [start_year,start_month] = get_stock_start(number)
-    path = '//*[@id="main-content"]/table'
+    url = 'http://www.tse.com.tw/exchangeReport/STOCK_DAY_AVG'
+    params = {"data":"20130101",
+                "stockNo":str(number)
+                }
     csvfiles = open('Desktop/ntumath/computation/'+str(number)+'/'+str(number)+"股價("+str(start_year)+'.'+str(start_month)+
                     '~105.12).csv',
                     'wt',newline='',encoding='utf-8')
     writer = csv.writer(csvfiles)
-    bf = BeautifulSoup(driver.page_source,'html.parser')
-    table = bf.find_all('table',border="1")[0]
-    price_per_month = float(table.find_all('td')[-1].get_text())
-    rows = [str(start_year)+'年'+str(start_month)+'月',price_per_month]
-    writer.writerow(rows)
-    time.sleep(1)
-    for month_f in range(start_month+1,13,1):
-        if month_f == 11:
-            driver.find_element_by_name('query_month').send_keys(1)
-        elif month_f == 1:
-            driver.find_element_by_name('query_month').send_keys(0)
-        else:
-            driver.find_element_by_name('query_month').send_keys(month_f)
-        driver.find_element_by_name('query-button').click()
-        while table_is_present(path) != True:
-            time.sleep(3)
-            driver.find_element_by_name('query-button').click()
-        bf = BeautifulSoup(driver.page_source,'html.parser')
-        table = bf.find_all('table',border="1")[0]
-        try:
-            price_per_month = float(table.find_all('td')[-1].get_text())
-            if month_f == 1:
-                rows = [str(start_year)+'年1月',price_per_month]
-            else:
-                rows = [str(month_f)+'月',price_per_month]
-            writer.writerow(rows)
-            time.sleep(1)
-        except:
-            pass
-    try:
-        for year in range(start_year+1,106,1):
-            driver.find_element_by_name('query_year').send_keys(year)
-            for month in range(1,13,1):
-                if month != 11:
-                    driver.find_element_by_name('query_month').send_keys(month)
-                else:
-                    driver.find_element_by_name('query_month').send_keys(1)
-                driver.find_element_by_name('query-button').click()
-                while table_is_present(path) != True:
-                    time.sleep(3)
-                    driver.find_element_by_name('query-button').click()
-                bf = BeautifulSoup(driver.page_source,'html.parser')
-                table = bf.find_all('table',border="1")[0]
-                try:
-                    price_per_month = float(table.find_all('td')[-1].get_text())
-                    if month == 1:
-                        rows = [str(year)+'年1月',price_per_month]
-                    else:
-                        rows = [str(month)+'月',price_per_month]
-                    writer.writerow(rows)
-                    time.sleep(1)
-                except:
-                    pass
-    except:
-        pass
-    csvfiles.close()
+    for year in range(start_year,106,1):
+        if year == start_year:
+            for month in range(start_month,13,1):
 
+                if month >= 10:
+                    date = str(year+1911)+str(month)+"01"
+                else:
+                    date = str(year+1911)+"0"+str(month)+"01"
+                params["date"] = date
+                text = eval(requests.get(url,params=params).text)
+                try:
+                    price = float(text["data"][-1][-1])
+                    if month == start_month:
+                        rows = [str(year)+"年"+str(month)+"月",price]
+                    else:
+                        rows = [str(month)+"月",price]
+                    writer.writerow(rows)
+                    time.sleep(.5)
+                except:
+                    print("有一些錯誤在 "+str(number)+" "+str(year)+" "+str(month))
+                    return
+        else:
+            for month in range(1,13,1):
+
+                if month >= 10:
+                    date = str(year+1911)+str(month)+"01"
+                else:
+                    date = str(year+1911)+"0"+str(month)+"01"
+                params["date"] = date
+                text = eval(requests.get(url,params=params).text)
+                try:
+                    price = float(text["data"][-1][-1])
+                    if month == 1:
+                        rows = [str(year)+"年1月",price]
+                    else:
+                        rows = [str(month)+"月",price]
+                    writer.writerow(rows)
+                    time.sleep(.5)
+                except:
+                    print("有一些錯誤在 "+str(number)+" "+str(year)+" "+str(month))
+                    return
 
 # # 各種分類公司開抓
 
