@@ -1,7 +1,8 @@
 function alldrawtest(o,n,m,l)
-company=dir('¤½¥qºØÃş/');
-A=dir(strcat('¤½¥qºØÃş/',company(o).name,'/',num2str(n),'/'));
-[N,T,data]=xlsread(strcat('¤½¥qºØÃş/',company(o).name,'/',num2str(n),'/',A(m).name));
+% oæ˜¯å…¬å¸ç¨®é¡  næ˜¯å…¬å¸ä»£è™Ÿ mæ˜¯è³‡æ–™é¡åˆ¥ læ˜¯è³‡æ–™å…§çš„è¡Œ0æ•¸
+company=dir('å…¬å¸ç¨®é¡/');
+A=dir(strcat('å…¬å¸ç¨®é¡/',company(o).name,'/',num2str(n),'/'));
+[N,T,data]=xlsread(strcat('å…¬å¸ç¨®é¡/',company(o).name,'/',num2str(n),'/',A(m).name));
 [e,f]=size(T);
 f=f-1;
 if m==3||m==6
