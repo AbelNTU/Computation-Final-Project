@@ -197,17 +197,34 @@ def get_start(number,i):
                 except:
                     pass
         elif i == 6:
+            params = {  "encodeURIComponent":"1",
+                        "step":"1",
+                        "firstin":"1",
+                        "off":"1",
+                        "keyword4":"",
+                        "code1":"",
+                        "TYPEK2":"",
+                        "checkbtn":"",
+                        "queryName":"co_id",
+                        "inpuType":"co_id",
+                        "TYPEK":"all",
+                        "isnew":"false",
+                        "co_id":number,
+                        "year":str(year),
+                        "month":"12"}
             for month in range(1,13,1):
-                try:
-                    my_file = Path("Desktop/ntumath/computation/"+number+"/"+number+str(year)+"."+str(month)+".csv")
-                    if my_file.is_file():
-                        year_new = year
-                        month_new = month
-                        return [year_new,month_new]
-                    else:
-                        pass
-                except:
+                if month >= 10:
+                    params["month"] = str(month)
+                else:
+                    params["month"] = "0"+str(month)
+                res=requests.post('http://mops.twse.com.tw/mops/web/ajax_t05st10_ifrs',data=params)
+                res.encoding = 'utf-8'
+                text = BeautifulSoup(res.text,'html.parser')
+                if text.findAll(class_ = "tblHead") == []:
                     pass
+                    time.sleep(.5)
+                else:
+                    return [year,month]
 
 
 
